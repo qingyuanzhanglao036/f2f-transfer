@@ -39,7 +39,7 @@ export async function onRequestGet(context: { request: Request; env: Env }) {
 
       // 更新 KV，设置 1 分钟后过期（下载后延迟删除）
       await env.TRANSFERS.put(code, JSON.stringify(data), {
-        expirationTtl: 60 // 1分钟后自动删除
+        expirationTtl: 86400 // 24小时后自动删除
       });
     }
 

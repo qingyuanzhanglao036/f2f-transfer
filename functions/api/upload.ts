@@ -80,7 +80,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
 
     // 写入文件数据
     await env.TRANSFERS.put(code, JSON.stringify(data), {
-      expirationTtl: 3600 // 1小时
+      expirationTtl: 86400 // 24小时
     });
 
     return new Response(JSON.stringify({

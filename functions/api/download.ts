@@ -32,18 +32,7 @@ export async function onRequestGet(context: { request: Request; env: Env }) {
 
     const data = JSON.parse(dataStr);
 
-    // 标记为已下载，并设置下载时间
-    if (!data.downloaded) {
-      data.downloaded = true;
-      data.downloadTime = Date.now();
-
-      // 更新 KV，设置 1 分钟后过期（下载后延迟删除）
-      await env.TRANSFERS.put(code, JSON.stringify(data), {
-        expirationTtl: 86400 // 24小时后自动删除
-      });
-    }
-
-    // 返回数据
+    // 返回数据 - 无需标记已下载，分享码可以多次使用
     return new Response(JSON.stringify({
       success: true,
       type: data.type,

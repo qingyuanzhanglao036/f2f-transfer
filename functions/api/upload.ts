@@ -16,9 +16,10 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
     const type = formData.get('type') as string; // 'file', 'files', 'images', 'text'
     const content = formData.get('content') as string;
     const fileName = formData.get('fileName') as string | null;
+    const action = formData.get('action') as string | null; // 'upload' or 'delete'
 
     // 验证参数
-    if (!code || !type || !content) {
+    if (!code || !type) {
       return new Response(JSON.stringify({ error: t('missingParams') }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
@@ -33,6 +34,38 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
       });
     }
 
+    // 处理删除操作
+    if (action === 'delete') {
+      try {
+        await env.TRANSFERS.delete(code);
+        return new Response(JSON.stringify({
+          success: true,
+          message: t('deleteSuccess')
+        }), {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          }
+        });
+      } catch (error: any) {
+        return new Response(JSON.stringify({
+          error: t('deleteFailed')
+        }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+    }
+
+    // 处理上传操作
+    if (!content) {
+      return new Response(JSON.stringify({ error: t('missingParams') }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
     // 验证内容大小
     const sizeInBytes = new Blob([content]).size;
     const maxSize = 25 * 1024 * 1024; // 最大25MB
@@ -41,15 +74,6 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
     if (sizeInBytes > maxSize) {
       return new Response(JSON.stringify({ error: t('contentTooLarge') }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-
-    // 检查分享码是否已存在
-    const existing = await env.TRANSFERS.get(code);
-    if (existing) {
-      return new Response(JSON.stringify({ error: t('codeAlreadyUsed') }), {
-        status: 409,
         headers: { 'Content-Type': 'application/json' }
       });
     }
@@ -78,7 +102,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
       downloadTime: null
     };
 
-    // 写入文件数据
+    // 写入文件数据 - 允许覆盖（分享码可以多次使用）
     await env.TRANSFERS.put(code, JSON.stringify(data), {
       expirationTtl: 86400 // 24小时
     });
